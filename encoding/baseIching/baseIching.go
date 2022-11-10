@@ -77,7 +77,6 @@ func hexagram2byte(src *string, idx int) (val byte, err error) {
 	var idxHexagram int
 	idxHexagram, err = getIndexForHexagram(hexagram)
 	val = byte(idxHexagram)
-	fmt.Println(idxHexagram)
 	return
 }
 
@@ -154,11 +153,11 @@ func pack24bitsInRune(bits []byte) rune {
 func extractPackedByteFromRune(r rune, pos int) byte {
 	if pos < 0 {
 		pos = 0
-	} else if pos > 3 {
+	} else if pos > 2 {
 		pos = 2
 	}
 	var b byte
-	shift := 24 - (pos * 8)
+	shift := make8bitsRuneShift(pos)
 	b = byte(r >> shift)
 	return b
 }
@@ -179,6 +178,7 @@ func Encode(src []byte) string {
 	numTriplets := len(src) / 3
 	remain := len(src) % 3
 	idxTripletStart := 0
+
 	for iT := 0; iT < numTriplets; iT++ {
 		// convert 3x 8bit source bytes into 4 bytes
 		var val rune
@@ -187,17 +187,14 @@ func Encode(src []byte) string {
 			fmt.Println(err)
 			return s
 		}
+
 		// for every byte get the encoding vocabulary index
 		for iI := 0; iI < len(idxHexagrams); iI++ {
 			idxHexagrams[iI] = val >> make6bitsRuneShift(iI) & 0x3F
 			// and append hexagrams
 			s = s + getHexagramByIndex(int(idxHexagrams[iI]))
-			fmt.Println(idxHexagrams[iI])
 		}
-		fmt.Println("")
-		fmt.Printf("%d\t%b\n", src[idxTripletStart], src[idxTripletStart])
-		fmt.Printf("%d\t%b\n", src[idxTripletStart+1], src[idxTripletStart+1])
-		fmt.Printf("%d\t%b\n", src[idxTripletStart+2], src[idxTripletStart+2])
+
 		idxTripletStart += 3
 	}
 
@@ -307,6 +304,7 @@ func Decode(src string) (dst []byte, err error) {
 
 		//let's make a 32bit buffer to put our (6*4 bits) idx in
 		buf := pack24bitsInRune(valHexagrams)
+
 		//then let's unpack the 3 bytes we obtained into the dst buffer
 		for iB := 0; iB < 3; iB++ {
 			if idxByte < len(dst) {
@@ -349,9 +347,6 @@ func Decode(src string) (dst []byte, err error) {
 			dst[outputByteSize-1] = extractPackedByteFromRune(buf, 1)
 		}
 	}
-	fmt.Println("")
-	for i := 0; i < len(dst); i++ {
-		fmt.Printf("%d\t%b\n", dst[i], dst[i])
-	}
+
 	return
 }
